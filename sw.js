@@ -9,7 +9,12 @@ self.addEventListener('install', function (event) {
     caches.open(CACHE_NAME).then(function (cache) {
       // B6. TODO - Add all of the URLs from RECIPE_URLs here so that they are
       //            added to the cache when the ServiceWorker is installed
-      return cache.addAll([]);
+      return cache.addAll(['./',
+        './index.html',
+        './manifest.json',
+        './assets/styles/main.css',
+        './assets/scripts/main.js',
+        './assets/components/RecipeCard.js']);
     })
   );
 });
@@ -37,4 +42,26 @@ self.addEventListener('fetch', function (event) {
   // B8. TODO - If the request is in the cache, return with the cached version.
   //            Otherwise fetch the resource, add it to the cache, and return
   //            network response.
+  event.respondWith(
+    caches.open(CACHE_NAME).then(function (cache) {
+      // B8. Check if the request is already in the cache
+      return cache.match(event.request).then(function (cachedResponse) {
+        // If the resource is in the cache, return with the cached version immediately.
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+
+        // Otherwise fetch the resource from the network
+        // NOTE: In the article's code REPLACE fetch(event.request.url) with fetch(event.request)
+        return fetch(event.request).then(function (networkResponse) {
+          // We must CLONE the response stream because responses can only be read once.
+          // One copy goes into the cache store, the other goes back to the browser window.
+          cache.put(event.request, networkResponse.clone());
+          
+          // Return the fresh network response back to the app
+          return networkResponse;
+        });
+      });
+    })
+  );
 });
